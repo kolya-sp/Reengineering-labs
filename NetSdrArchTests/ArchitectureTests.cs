@@ -60,14 +60,14 @@ namespace NetSdrArchTests
         }
 
         // ---------------------------------------------------------------
-        // Rule 3: TcpClientWrapper must implement ITcpClient
-        // Rationale: TCP networking component must be abstracted
-        //            behind interface for testability and substitutability
-        // Note: scoped to ITcpClient only because UdpClientWrapper/IUdpClient
-        //       reside in global namespace (outside NetSdrClientApp.Networking)
+        // Rule 3: All classes in Networking must implement a networking interface
+        // Rationale: every concrete networking component must be abstracted
+        //            behind an interface for testability and substitutability
+        // Note: after lab8 refactoring both UdpClientWrapper and TcpClientWrapper
+        //       reside in NetSdrClientApp.Networking, so we check both interfaces
         // ---------------------------------------------------------------
         [Test]
-        public void TcpClientWrapper_ShouldImplement_ITcpClient()
+        public void NetworkingClasses_ShouldImplement_NetworkingInterface()
         {
             var result = Types
                 .InAssembly(AppAssembly)
@@ -77,10 +77,13 @@ namespace NetSdrArchTests
                 .AreClasses()
                 .Should()
                 .ImplementInterface(typeof(NetSdrClientApp.Networking.ITcpClient))
+                .Or()
+                .ImplementInterface(typeof(NetSdrClientApp.Networking.IUdpClient))
                 .GetResult();
 
             Assert.That(result.IsSuccessful, Is.True,
-                "All concrete classes in NetSdrClientApp.Networking must implement ITcpClient. " +
+                "All concrete classes in NetSdrClientApp.Networking must implement " +
+                "ITcpClient or IUdpClient. " +
                 "Failing types: " + string.Join(", ", result.FailingTypeNames ?? []));
         }
 

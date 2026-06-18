@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using NetSdrClientApp.Messages;
 using NetSdrClientApp.Networking;
 using System;
@@ -17,7 +18,7 @@ namespace NetSdrClientApp
         private readonly ITcpClient _tcpClient;
         private readonly IUdpClient _udpClient;
 
-        public bool IQStarted { get; set; }
+        public bool IQStarted { get; private set; }
 
         public NetSdrClient(ITcpClient tcpClient, IUdpClient udpClient)
         {
@@ -97,6 +98,8 @@ namespace NetSdrClientApp
 
         public async Task ChangeFrequencyAsync(long hz, int channel)
         {
+            if (!EnsureConnected()) return;
+
             var channelArg = (byte)channel;
             var frequencyArg = BitConverter.GetBytes(hz).Take(5);
             var args = new[] { channelArg }.Concat(frequencyArg).ToArray();
@@ -114,7 +117,8 @@ namespace NetSdrClientApp
             return false;
         }
 
-        private void _udpClient_MessageReceived(object? sender, byte[] e)
+        [ExcludeFromCodeCoverage] // FileStream I/O — not suitable for unit testing
+        private static void _udpClient_MessageReceived(object? sender, byte[] e)
         {
             NetSdrMessageHelper.TranslateMessage(e, out _, out _, out _, out byte[] body);
             var samples = NetSdrMessageHelper.GetSamples(16, body);
@@ -131,11 +135,11 @@ namespace NetSdrClientApp
             }
         }
 
-        private TaskCompletionSource<byte[]> responseTaskSource;
+        private volatile TaskCompletionSource<byte[]>? responseTaskSource;
 
         private async Task<byte[]> SendTcpRequest(byte[] msg)
         {
-            if (!EnsureConnected()) return null;
+            if (!EnsureConnected()) return Array.Empty<byte>();
 
             responseTaskSource = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
             var responseTask = responseTaskSource.Task;
@@ -149,11 +153,11 @@ namespace NetSdrClientApp
 
         private void _tcpClient_MessageReceived(object? sender, byte[] e)
         {
-            //TODO: add Unsolicited messages handling here
-            if (responseTaskSource != null)
+            var tcs = responseTaskSource;
+            if (tcs != null)
             {
-                responseTaskSource.SetResult(e);
                 responseTaskSource = null;
+                tcs.TrySetResult(e);
             }
             Console.WriteLine("Response recieved: " + e.Select(b => Convert.ToString(b, toBase: 16)).Aggregate((l, r) => $"{l} {r}"));
         }

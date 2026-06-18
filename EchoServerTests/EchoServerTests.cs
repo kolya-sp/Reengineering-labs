@@ -94,19 +94,22 @@ namespace EchoServerTests
             serverSocket.Stop();
 
             var cts = new CancellationTokenSource();
-            var handleTask = _server.HandleClientAsync(serverClient, cts.Token);
+            var handleTask = EchoServer.HandleClientAsync(serverClient, cts.Token);
 
             // Act: надіслати дані і прочитати echo
             byte[] sent = new byte[] { 0x01, 0x02, 0x03, 0x04 };
             var clientStream = clientTcp.GetStream();
-            await clientStream.WriteAsync(sent, 0, sent.Length);
+            await clientStream.WriteAsync(sent.AsMemory(0, sent.Length));
 
             byte[] received = new byte[sent.Length];
-            int bytesRead = await clientStream.ReadAsync(received, 0, received.Length);
+            int bytesRead = await clientStream.ReadAsync(received.AsMemory(0, received.Length));
 
             // Assert
-            Assert.That(bytesRead, Is.EqualTo(sent.Length));
-            Assert.That(received, Is.EqualTo(sent));
+            Assert.Multiple(() =>
+            {
+                Assert.That(bytesRead, Is.EqualTo(sent.Length));
+                Assert.That(received, Is.EqualTo(sent));
+            });
 
             // Cleanup
             cts.Cancel();
@@ -131,7 +134,7 @@ namespace EchoServerTests
 
             // Act: скасувати токен одразу
             cts.Cancel();
-            var handleTask = _server.HandleClientAsync(serverClient, cts.Token);
+            var handleTask = EchoServer.HandleClientAsync(serverClient, cts.Token);
             await Task.WhenAny(handleTask, Task.Delay(2000));
 
             // Assert — завершилось без зависання
@@ -156,11 +159,108 @@ namespace EchoServerTests
 
             // Act
             await Task.WhenAny(
-                _server.HandleClientAsync(serverClient, cts.Token),
+                EchoServer.HandleClientAsync(serverClient, cts.Token),
                 Task.Delay(2000));
 
             // Assert — після завершення клієнт закритий
             Assert.That(serverClient.Connected, Is.False);
         }
+        [Test]
+        public async Task HandleClientAsync_HandlesException_DoesNotThrow()
+        {
+            // Arrange: клієнт що одразу закривається — ReadAsync кине виняток
+            using var serverSocket = new TcpListener(System.Net.IPAddress.Loopback, 0);
+            serverSocket.Start();
+            int port = ((System.Net.IPEndPoint)serverSocket.LocalEndpoint).Port;
+
+            using var clientTcp = new TcpClient();
+            await clientTcp.ConnectAsync(System.Net.IPAddress.Loopback, port);
+            using var serverClient = await serverSocket.AcceptTcpClientAsync();
+            serverSocket.Stop();
+
+            var cts = new CancellationTokenSource();
+
+            // Закрити клієнта до HandleClientAsync — ReadAsync кине IOException
+            clientTcp.Close();
+
+            // Act — не має кинути виняток (catch block)
+            var task = EchoServer.HandleClientAsync(serverClient, cts.Token);
+            await Task.WhenAny(task, Task.Delay(2000));
+
+            // Assert — завершилось
+            Assert.That(task.IsCompleted, Is.True);
+        }
+
+        [Test]
+        public async Task StartAsync_StopsGracefully_AfterStop()
+        {
+            // Arrange
+            _listenerMock
+                .Setup(l => l.AcceptTcpClientAsync())
+                .ThrowsAsync(new ObjectDisposedException("listener"));
+
+            var startTask = _server.StartAsync();
+            await Task.WhenAny(startTask, Task.Delay(1000));
+
+            // Act
+            _server.Stop();
+
+            // Assert
+            _listenerMock.Verify(l => l.Stop(), Times.Once);
+        }
+
+        [Test]
+        public async Task HandleClientAsync_MultipleChunks_EchoesAll()
+        {
+            using var serverSocket = new TcpListener(System.Net.IPAddress.Loopback, 0);
+            serverSocket.Start();
+            int port = ((System.Net.IPEndPoint)serverSocket.LocalEndpoint).Port;
+
+            using var clientTcp = new TcpClient();
+            await clientTcp.ConnectAsync(System.Net.IPAddress.Loopback, port);
+            using var serverClient = await serverSocket.AcceptTcpClientAsync();
+            serverSocket.Stop();
+
+            var cts = new CancellationTokenSource();
+            var handleTask = EchoServer.HandleClientAsync(serverClient, cts.Token);
+
+            var clientStream = clientTcp.GetStream();
+
+            // Надіслати два чанки
+            byte[] chunk1 = new byte[] { 0x01, 0x02 };
+            byte[] chunk2 = new byte[] { 0x03, 0x04 };
+
+            await clientStream.WriteAsync(chunk1.AsMemory());
+            byte[] recv1 = new byte[2];
+            await ReadExactAsync(clientStream, recv1, recv1.Length);
+
+            await clientStream.WriteAsync(chunk2.AsMemory());
+            byte[] recv2 = new byte[2];
+            await ReadExactAsync(clientStream, recv2, recv2.Length);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(recv1, Is.EqualTo(chunk1));
+                Assert.That(recv2, Is.EqualTo(chunk2));
+            });
+
+            cts.Cancel();
+            clientTcp.Close();
+            await Task.WhenAny(handleTask, Task.Delay(1000));
+        }
+
+        private static async Task ReadExactAsync(
+            System.IO.Stream stream, byte[] buffer, int count)
+        {
+            int offset = 0;
+            while (offset < count)
+            {
+                int read = await stream.ReadAsync(
+                    buffer.AsMemory(offset, count - offset));
+                if (read == 0) break;
+                offset += read;
+            }
+        }
+
     }
 }

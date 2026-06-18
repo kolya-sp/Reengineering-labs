@@ -1,4 +1,4 @@
-﻿using Moq;
+using Moq;
 using NetSdrClientApp;
 using NetSdrClientApp.Networking;
 
@@ -176,3 +176,4 @@ public class NetSdrClientTests
         Assert.That(_client.IQStarted, Is.False);
     }
 }
+
