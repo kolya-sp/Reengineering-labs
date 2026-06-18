@@ -77,6 +77,15 @@ jobs:
             /p:CoverletOutput=TestResults/coverage.xml `
             /p:CoverletOutputFormat=opencover
         shell: pwsh
+
+      - name: Tests EchoServerTests with coverage
+        run: |
+          dotnet test EchoServerTests/EchoServerTests.csproj -c Release --no-build `
+            /p:CollectCoverage=true `
+            /p:CoverletOutput=TestResults/coverage.xml `
+            /p:CoverletOutputFormat=opencover
+        shell: pwsh
+
       # 3) END: SonarScanner
       - name: SonarScanner End
         run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
