@@ -11,6 +11,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EchoServer", "EchoTcpServer
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetSdrArchTests", "NetSdrArchTests\NetSdrArchTests.csproj", "{23A9A89D-B1B6-495C-B709-3E3C88B0B957}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EchoServerTests", "EchoServerTests\EchoServerTests.csproj", "{DEE234DC-88DE-4FBF-A293-436925C3CF49}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "EchoTcpServer", "EchoTcpServer", "{DBDFFC83-AD19-3622-0FF4-C4288E16DE63}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +73,18 @@ Global
 		{23A9A89D-B1B6-495C-B709-3E3C88B0B957}.Release|x64.Build.0 = Release|Any CPU
 		{23A9A89D-B1B6-495C-B709-3E3C88B0B957}.Release|x86.ActiveCfg = Release|Any CPU
 		{23A9A89D-B1B6-495C-B709-3E3C88B0B957}.Release|x86.Build.0 = Release|Any CPU
+		{DEE234DC-88DE-4FBF-A293-436925C3CF49}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DEE234DC-88DE-4FBF-A293-436925C3CF49}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DEE234DC-88DE-4FBF-A293-436925C3CF49}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{DEE234DC-88DE-4FBF-A293-436925C3CF49}.Debug|x64.Build.0 = Debug|Any CPU
+		{DEE234DC-88DE-4FBF-A293-436925C3CF49}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{DEE234DC-88DE-4FBF-A293-436925C3CF49}.Debug|x86.Build.0 = Debug|Any CPU
+		{DEE234DC-88DE-4FBF-A293-436925C3CF49}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DEE234DC-88DE-4FBF-A293-436925C3CF49}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DEE234DC-88DE-4FBF-A293-436925C3CF49}.Release|x64.ActiveCfg = Release|Any CPU
+		{DEE234DC-88DE-4FBF-A293-436925C3CF49}.Release|x64.Build.0 = Release|Any CPU
+		{DEE234DC-88DE-4FBF-A293-436925C3CF49}.Release|x86.ActiveCfg = Release|Any CPU
+		{DEE234DC-88DE-4FBF-A293-436925C3CF49}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
