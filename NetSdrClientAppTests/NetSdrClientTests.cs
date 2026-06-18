@@ -115,5 +115,64 @@ public class NetSdrClientTests
         Assert.That(_client.IQStarted, Is.False);
     }
 
-    //TODO: cover the rest of the NetSdrClient code here
+    [Test]
+    public async Task StopIQNoConnectionTest()
+    {
+        // act
+        await _client.StopIQAsync();
+
+        // assert — без з'єднання StopListening не викликається
+        _updMock.Verify(udp => udp.StopListening(), Times.Never);
+        Assert.That(_client.IQStarted, Is.False);
+    }
+
+    [Test]
+    public async Task ChangeFrequencyAsyncTest()
+    {
+        // Arrange
+        await ConnectAsyncTest();
+
+        // Act
+        await _client.ChangeFrequencyAsync(20000000, 1);
+
+        // Assert
+        _tcpMock.Verify(tcp => tcp.SendMessageAsync(It.IsAny<byte[]>()), Times.Exactly(4)); // 3 з connect + 1
+    }
+
+    [Test]
+    public async Task ChangeFrequencyNoConnectionTest()
+    {
+        // Act
+        await _client.ChangeFrequencyAsync(20000000, 1);
+
+        // Assert
+        _tcpMock.Verify(tcp => tcp.SendMessageAsync(It.IsAny<byte[]>()), Times.Never);
+    }
+
+    [Test]
+    public async Task StartIQSetsIQStartedTrueTest()
+    {
+        // Arrange
+        await ConnectAsyncTest();
+
+        // Act
+        await _client.StartIQAsync();
+
+        // Assert
+        Assert.That(_client.IQStarted, Is.True);
+    }
+
+    [Test]
+    public async Task StopIQSetsIQStartedFalseTest()
+    {
+        // Arrange
+        await ConnectAsyncTest();
+        await _client.StartIQAsync();
+
+        // Act
+        await _client.StopIQAsync();
+
+        // Assert
+        Assert.That(_client.IQStarted, Is.False);
+    }
 }
