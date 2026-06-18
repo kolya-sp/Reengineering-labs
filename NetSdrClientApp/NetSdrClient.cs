@@ -1,4 +1,4 @@
-﻿using NetSdrClientApp.Messages;
+using NetSdrClientApp.Messages;
 using NetSdrClientApp.Networking;
 using System;
 using System.Collections.Generic;
@@ -60,11 +60,7 @@ namespace NetSdrClientApp
 
         public async Task StartIQAsync()
         {
-            if (!_tcpClient.Connected)
-            {
-                Console.WriteLine("No active connection.");
-                return;
-            }
+            if (!EnsureConnected()) return;
 
             var iqDataMode = (byte)0x80;
             var start = (byte)0x02;
@@ -84,11 +80,7 @@ namespace NetSdrClientApp
 
         public async Task StopIQAsync()
         {
-            if (!_tcpClient.Connected)
-            {
-                Console.WriteLine("No active connection.");
-                return;
-            }
+            if (!EnsureConnected()) return;
 
             var stop = (byte)0x01;
 
@@ -114,6 +106,14 @@ namespace NetSdrClientApp
             await SendTcpRequest(msg);
         }
 
+
+        private bool EnsureConnected()
+        {
+            if (_tcpClient.Connected) return true;
+            Console.WriteLine("No active connection.");
+            return false;
+        }
+
         private void _udpClient_MessageReceived(object? sender, byte[] e)
         {
             NetSdrMessageHelper.TranslateMessage(e, out _, out _, out _, out byte[] body);
@@ -135,11 +135,7 @@ namespace NetSdrClientApp
 
         private async Task<byte[]> SendTcpRequest(byte[] msg)
         {
-            if (!_tcpClient.Connected)
-            {
-                Console.WriteLine("No active connection.");
-                return null;
-            }
+            if (!EnsureConnected()) return null;
 
             responseTaskSource = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
             var responseTask = responseTaskSource.Task;
