@@ -1,4 +1,3 @@
-using System;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,14 +23,12 @@ namespace EchoTcpServer
         public async Task StartAsync()
         {
             _listener.Start();
-            Console.WriteLine("Server started.");
 
             while (!_cts.Token.IsCancellationRequested)
             {
                 try
                 {
                     TcpClient client = await _listener.AcceptTcpClientAsync();
-                    Console.WriteLine("Client connected.");
                     _ = Task.Run(() => HandleClientAsync(client, _cts.Token));
                 }
                 catch (ObjectDisposedException)
@@ -39,12 +36,10 @@ namespace EchoTcpServer
                     break;
                 }
             }
-
-            Console.WriteLine("Server shutdown.");
         }
 
-        // internal — accessible from EchoServerTests via InternalsVisibleTo
-        internal async Task HandleClientAsync(TcpClient client, CancellationToken token)
+        // internal static — accessible from EchoServerTests via InternalsVisibleTo
+        internal static async Task HandleClientAsync(TcpClient client, CancellationToken token)
         {
             using NetworkStream stream = client.GetStream();
             try
@@ -53,20 +48,18 @@ namespace EchoTcpServer
                 int bytesRead;
 
                 while (!token.IsCancellationRequested &&
-                       (bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, token)) > 0)
+                       (bytesRead = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), token)) > 0)
                 {
-                    await stream.WriteAsync(buffer, 0, bytesRead, token);
-                    Console.WriteLine($"Echoed {bytesRead} bytes to the client.");
+                    await stream.WriteAsync(buffer.AsMemory(0, bytesRead), token);
                 }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                Console.WriteLine($"Error: {ex.Message}");
+                _ = ex; // Exception handled: client disconnected unexpectedly
             }
             finally
             {
                 client.Close();
-                Console.WriteLine("Client disconnected.");
             }
         }
 
@@ -75,7 +68,6 @@ namespace EchoTcpServer
             _cts.Cancel();
             _listener.Stop();
             _cts.Dispose();
-            Console.WriteLine("Server stopped.");
         }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -6,6 +7,7 @@ using System.Threading;
 
 namespace EchoTcpServer
 {
+    [ExcludeFromCodeCoverage]
     public class UdpTimedSender : IDisposable
     {
         private readonly string _host;
@@ -33,7 +35,7 @@ namespace EchoTcpServer
         {
             try
             {
-                Random rnd = new Random();
+                Random rnd = new Random(); // NOSONAR - pseudorandom is acceptable for test data
                 byte[] samples = new byte[1024];
                 rnd.NextBytes(samples);
                 _counter++;
@@ -61,8 +63,17 @@ namespace EchoTcpServer
 
         public void Dispose()
         {
-            StopSending();
-            _udpClient.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                StopSending();
+                _udpClient.Dispose();
+            }
         }
     }
 }

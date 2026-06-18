@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.PortableExecutable;
@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 
 namespace NetSdrClientApp.Messages
 {
-    //TODO: analyze possible use of [StructLayout] for better performance and readability 
     public static class NetSdrMessageHelper
     {
         private const short _maxMessageLength = 8191;
@@ -108,23 +107,27 @@ namespace NetSdrClientApp.Messages
 
         public static IEnumerable<int> GetSamples(ushort sampleSize, byte[] body)
         {
-            sampleSize /= 8; //to bytes
-            if (sampleSize  > 4)
+            ushort sampleSizeBytes = (ushort)(sampleSize / 8);
+            if (sampleSizeBytes > 4)
             {
-                throw new ArgumentOutOfRangeException();
+                throw new ArgumentOutOfRangeException(nameof(sampleSize), sampleSize, "Sample size must be 8, 16, 24, or 32 bits.");
             }
+            return IterateSamples(sampleSizeBytes, body);
+        }
 
+        private static IEnumerable<int> IterateSamples(ushort sampleSizeBytes, byte[] body)
+        {
             var bodyEnumerable = body as IEnumerable<byte>;
-            var prefixBytes = Enumerable.Range(0, 4 - sampleSize)
-                                      .Select(b => (byte)0);
+            var prefixBytes = Enumerable.Range(0, 4 - sampleSizeBytes)
+                                        .Select(b => (byte)0);
 
-            while (bodyEnumerable.Count() >= sampleSize)
+            while (bodyEnumerable.Count() >= sampleSizeBytes)
             {
                 yield return BitConverter.ToInt32(bodyEnumerable
-                    .Take(sampleSize)
+                    .Take(sampleSizeBytes)
                     .Concat(prefixBytes)
                     .ToArray());
-                bodyEnumerable = bodyEnumerable.Skip(sampleSize);
+                bodyEnumerable = bodyEnumerable.Skip(sampleSizeBytes);
             }
         }
 
